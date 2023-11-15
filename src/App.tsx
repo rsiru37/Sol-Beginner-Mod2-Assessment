@@ -1,15 +1,6 @@
 // import functionalities
 import './App.css';
-import {
-  Connection,
-  Keypair,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-  clusterApiUrl,
-  sendAndConfirmTransaction,
-} from "@solana/web3.js";
+import {Connection,Keypair,LAMPORTS_PER_SOL,PublicKey,SystemProgram,Transaction,clusterApiUrl,sendAndConfirmTransaction} from "@solana/web3.js";
 import { useEffect, useState } from "react";
 import './App.css'
 
@@ -77,10 +68,10 @@ export default function App() {
   );
 
   // create a state variable for our connection
-  const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+  //const connection = new Connection(clusterApiUrl("testnet"), "confirmed");
   
   // connection to use with local solana test validator
-  // const connection = new Connection("http://127.0.0.1:8899", "confirmed");
+  const connection = new Connection("http://127.0.0.1:8899", "confirmed");
 
   // this is the function that runs whenever the component updates (e.g. render, refresh)
   useEffect(() => {
@@ -97,22 +88,16 @@ export default function App() {
    */
   const createSender = async () => {
     // create a new Keypair
-
-
-    console.log('Sender account: ', senderKeypair!.publicKey.toString());
+    const senderKeypair = new Keypair();
+    const hash = await connection.requestAirdrop(senderKeypair.publicKey, 2*LAMPORTS_PER_SOL);
+    console.log('Sender account: ', senderKeypair.publicKey.toString());
     console.log('Airdropping 2 SOL to Sender Wallet');
-
     // save this new KeyPair into this state variable
-    setSenderKeypair(/*KeyPair here*/);
-
-    // request airdrop into this new account
-    
-
+    setSenderKeypair(senderKeypair);
     const latestBlockHash = await connection.getLatestBlockhash();
-
+    await connection.confirmTransaction(hash);
     // now confirm the transaction
-
-    console.log('Wallet Balance: ' + (await connection.getBalance(senderKeypair!.publicKey)) / LAMPORTS_PER_SOL);
+    console.log('Wallet Balance: ' + (await connection.getBalance(senderKeypair.publicKey)) / LAMPORTS_PER_SOL);
   }
 
   /**
@@ -120,20 +105,19 @@ export default function App() {
    * This function is called when the Connect to Phantom Wallet button is clicked
    */
   const connectWallet = async () => {
-    // @ts-ignore
-    const { solana } = window;
+      // @ts-ignore
+      const { solana } = window;
 
-    // checks if phantom wallet exists
-    if (solana) {
-      try {
-        // connect to phantom wallet and return response which includes the wallet public key
-
-        // save the public key of the phantom wallet to the state variable
-        setReceiverPublicKey(/*PUBLIC KEY*/);
-      } catch (err) {
-        console.log(err);
+      // checks if phantom wallet exists
+      if (solana) {
+        try {
+          const response = await solana.connect();
+          const pkey = response.publicKey;  
+          setReceiverPublicKey(pkey);
+        } catch (err) {
+          console.log(err);
+        }
       }
-    }
   };
 
   /**
@@ -161,14 +145,14 @@ export default function App() {
    * This function is called when the Transfer SOL to Phantom Wallet button is clicked
    */
   const transferSol = async () => {    
-    
+    var transaction = new Transaction().add(
+    SystemProgram.transfer({fromPubkey: senderKeypair.publicKey, toPubkey: receiverPublicKey.publicKey, lamports:1*LAMPORTS_PER_SOL}));
     // create a new transaction for the transfer
-
+    await sendAndConfirmTransaction(connection, transaction, [senderKeypair]);
     // send and confirm the transaction
-
     console.log("transaction sent and confirmed");
-    console.log("Sender Balance: " + await connection.getBalance(senderKeypair!.publicKey) / LAMPORTS_PER_SOL);
-    console.log("Receiver Balance: " + await connection.getBalance(receiverPublicKey!) / LAMPORTS_PER_SOL);
+    console.log("Sender Balance: " + await connection.getBalance(senderKeypair.publicKey) / LAMPORTS_PER_SOL);
+    console.log("Receiver Balance: " + await connection.getBalance(receiverPublicKey) / LAMPORTS_PER_SOL);
   };
 
   // HTML code for the app
@@ -217,6 +201,7 @@ export default function App() {
               >
                 Disconnect from Wallet
               </button>
+              <p>Address of the Connected Wallet - {receiverPublicKey.toString()}</p>
             </div>
           )}
           {provider && receiverPublicKey && senderKeypair && (
