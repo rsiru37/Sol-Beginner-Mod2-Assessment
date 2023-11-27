@@ -145,12 +145,12 @@ export default function App() {
    * This function is called when the Transfer SOL to Phantom Wallet button is clicked
    */
   const transferSol = async () => {    
-    var transaction = new Transaction().add(
-    SystemProgram.transfer({fromPubkey: senderKeypair.publicKey, toPubkey: receiverPublicKey.publicKey, lamports:1*LAMPORTS_PER_SOL}));
+    const transaction = new Transaction().add(
+    SystemProgram.transfer({fromPubkey: senderKeypair.publicKey, toPubkey: receiverPublicKey, lamports:1*LAMPORTS_PER_SOL}));
     // create a new transaction for the transfer
-    await sendAndConfirmTransaction(connection, transaction, [senderKeypair]);
+    const sign = await sendAndConfirmTransaction(connection, transaction, [senderKeypair]);
     // send and confirm the transaction
-    console.log("transaction sent and confirmed");
+    console.log("transaction sent and confirmed", sign);
     console.log("Sender Balance: " + await connection.getBalance(senderKeypair.publicKey) / LAMPORTS_PER_SOL);
     console.log("Receiver Balance: " + await connection.getBalance(receiverPublicKey) / LAMPORTS_PER_SOL);
   };
